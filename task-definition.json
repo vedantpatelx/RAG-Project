@@ -1,0 +1,52 @@
+{
+    "family": "rag-project",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "arn:aws:iam::930067562412:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::930067562412:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+      {
+        "name": "rag-project",
+        "image": "930067562412.dkr.ecr.us-east-1.amazonaws.com/rag-project:latest",
+        "portMappings": [
+          {
+            "containerPort": 8000,
+            "protocol": "tcp"
+          }
+        ],
+        "secrets": [
+          {
+            "name": "ANTHROPIC_API_KEY",
+            "valueFrom": "arn:aws:secretsmanager:us-east-1:930067562412:secret:rag-project/env:ANTHROPIC_API_KEY::"
+          },
+          {
+            "name": "PINECONE_API_KEY",
+            "valueFrom": "arn:aws:secretsmanager:us-east-1:930067562412:secret:rag-project/env:PINECONE_API_KEY::"
+          },
+          {
+            "name": "PINECONE_INDEX_NAME",
+            "valueFrom": "arn:aws:secretsmanager:us-east-1:930067562412:secret:rag-project/env:PINECONE_INDEX_NAME::"
+          },
+          {
+            "name": "S3_BUCKET_NAME",
+            "valueFrom": "arn:aws:secretsmanager:us-east-1:930067562412:secret:rag-project/env:S3_BUCKET_NAME::"
+          },
+          {
+            "name": "AWS_REGION",
+            "valueFrom": "arn:aws:secretsmanager:us-east-1:930067562412:secret:rag-project/env:AWS_REGION::"
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/rag-project",
+            "awslogs-region": "us-east-1",
+            "awslogs-stream-prefix": "ecs"
+          }
+        },
+        "essential": true
+      }
+    ]
+  }
