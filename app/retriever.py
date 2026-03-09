@@ -1,39 +1,39 @@
+import os
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
-import chromadb
+from pinecone import Pinecone
 
-EMBEDDING_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+load_dotenv()
 
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma_client.get_or_create_collection(name="rag_docs")
+from embedder import embed_text
+
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
 
 
 def retrieve(query: str, top_k: int = 5) -> list[dict]:
     """
-    Embed the query, search Chroma for the most relevant chunks,
-    return a list of {text, source, page} dicts.
+    Embed the query, search Pinecone for the most relevant chunks,
+    return a list of {text, source, page, relevance_score} dicts.
     """
-    # 1. Embed the user query with the same model used at ingestion
-    query_embedding = EMBEDDING_MODEL.encode(query).tolist()
+    # 1. Embed the query
+    query_embedding = embed_text(query)
 
-    # 2. Search the vector DB
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k,
-        include=["documents", "metadatas", "distances"]
+    # 2. Query Pinecone
+    results = index.query(
+        vector=query_embedding,
+        top_k=top_k,
+        include_metadata=True
     )
 
-    # 3. Package results cleanly
+    # 3. Package results
     chunks = []
-    for text, metadata, distance in zip(
-        results["documents"][0],
-        results["metadatas"][0],
-        results["distances"][0]
-    ):
+    for match in results["matches"]:
         chunks.append({
-            "text": text,
-            "source": metadata.get("source", "unknown"),
-            "page": metadata.get("page", 0),
-            "relevance_score": round(1 - distance, 4)  # convert distance → similarity
+            "text": match["metadata"].get("text", ""),
+            "source": match["metadata"].get("source", "unknown"),
+            "page": match["metadata"].get("page", 0),
+            "relevance_score": round(match["score"], 4)
         })
 
     return chunks
