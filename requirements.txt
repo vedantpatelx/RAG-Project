@@ -5,3 +5,8 @@ langchain
 langchain-community
 pypdf
 python-dotenv
+fastapi
+uvicorn
+python-multipart
+boto3
+pinecone
