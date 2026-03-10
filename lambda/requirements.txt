@@ -1,0 +1,5 @@
+pinecone
+pdfplumber
+langchain-core
+langchain-text-splitters
+boto3
