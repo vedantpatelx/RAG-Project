@@ -1,6 +1,19 @@
-venv/
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+
+# Secrets
+output.json
 .env
+
+# Python
+venv/
 __pycache__/
 *.pyc
-.chroma/
-chroma_db/
+
+# ChromaDB (old, replaced by Pinecone)
+app/chroma_db/
+
+# Docs (test files)
+docs/test-trigger*.pdf
