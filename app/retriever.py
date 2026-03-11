@@ -1,4 +1,4 @@
-﻿# v2
+# v2
 import boto3
 import json
 from pinecone import Pinecone
