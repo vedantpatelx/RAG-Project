@@ -3,11 +3,10 @@ import json
 from pinecone import Pinecone
 from embedder import embed_text
 
-# Initialize clients
 bedrock_agent = boto3.client("bedrock-agent-runtime", region_name="us-east-1")
 
+
 def rerank(query: str, chunks: list[dict], top_n: int) -> list[dict]:
-    """Rerank chunks using Bedrock Cohere Rerank v3.5."""
     sources = [
         {
             "type": "INLINE",
@@ -43,16 +42,6 @@ def rerank(query: str, chunks: list[dict], top_n: int) -> list[dict]:
 
 
 def retrieve(query: str, top_k: int = 5) -> list[dict]:
-    """
-    Retrieve relevant chunks for a query using Pinecone + Bedrock reranking.
-    1. Embed query with Titan
-    2. Fetch top 20 candidates from Pinecone
-    3. Rerank with Cohere and return top_k
-    """
-    import os, json, boto3
-    from pinecone import Pinecone
-
-    # Load secrets
     secrets_client = boto3.client("secretsmanager", region_name="us-east-1")
     secret = secrets_client.get_secret_value(SecretId="rag-project/env")
     secrets = json.loads(secret["SecretString"])
@@ -60,10 +49,8 @@ def retrieve(query: str, top_k: int = 5) -> list[dict]:
     pc = Pinecone(api_key=secrets["PINECONE_API_KEY"])
     index = pc.Index(secrets["PINECONE_INDEX_NAME"])
 
-    # 1. Embed query
     query_embedding = embed_text(query)
 
-    # 2. Fetch top 20 candidates from Pinecone
     results = index.query(
         vector=query_embedding,
         top_k=20,
@@ -73,7 +60,6 @@ def retrieve(query: str, top_k: int = 5) -> list[dict]:
     if not results["matches"]:
         return []
 
-    # 3. Build chunks list
     chunks = [
         {
             "text": match["metadata"]["text"],
@@ -85,5 +71,4 @@ def retrieve(query: str, top_k: int = 5) -> list[dict]:
         for match in results["matches"]
     ]
 
-    # 4. Rerank and return top_k
     return rerank(query, chunks, top_n=top_k)
