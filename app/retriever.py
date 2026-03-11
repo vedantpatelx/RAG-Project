@@ -1,4 +1,3 @@
-# v2
 import boto3
 import json
 from pinecone import Pinecone
@@ -7,7 +6,7 @@ from embedder import embed_text
 bedrock_agent = boto3.client("bedrock-agent-runtime", region_name="us-east-1")
 
 
-def rerank(query: str, chunks: list[dict], top_n: int) -> list[dict]:
+def rerank(query, chunks, top_n):
     sources = [
         {
             "type": "INLINE",
@@ -18,7 +17,6 @@ def rerank(query: str, chunks: list[dict], top_n: int) -> list[dict]:
         }
         for chunk in chunks
     ]
-
     response = bedrock_agent.rerank(
         rerankingConfiguration={
             "type": "BEDROCK_RERANKING_MODEL",
@@ -32,35 +30,24 @@ def rerank(query: str, chunks: list[dict], top_n: int) -> list[dict]:
         sources=sources,
         queries=[{"type": "TEXT", "textQuery": {"text": query}}]
     )
-
     reranked = []
     for result in response["results"]:
         chunk = chunks[result["index"]].copy()
         chunk["rerank_score"] = result["relevanceScore"]
         reranked.append(chunk)
-
     return reranked
 
 
-def retrieve(query: str, top_k: int = 5) -> list[dict]:
+def retrieve(query, top_k=5):
     secrets_client = boto3.client("secretsmanager", region_name="us-east-1")
     secret = secrets_client.get_secret_value(SecretId="rag-project/env")
     secrets = json.loads(secret["SecretString"])
-
     pc = Pinecone(api_key=secrets["PINECONE_API_KEY"])
     index = pc.Index(secrets["PINECONE_INDEX_NAME"])
-
     query_embedding = embed_text(query)
-
-    results = index.query(
-        vector=query_embedding,
-        top_k=20,
-        include_metadata=True
-    )
-
+    results = index.query(vector=query_embedding, top_k=20, include_metadata=True)
     if not results["matches"]:
         return []
-
     chunks = [
         {
             "text": match["metadata"]["text"],
@@ -71,5 +58,4 @@ def retrieve(query: str, top_k: int = 5) -> list[dict]:
         }
         for match in results["matches"]
     ]
-
     return rerank(query, chunks, top_n=top_k)
