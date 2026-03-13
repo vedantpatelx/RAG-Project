@@ -8,3 +8,5 @@ docs/
 .git/
 .gitignore
 *.md
+**/__pycache__
+**/*.pyc
