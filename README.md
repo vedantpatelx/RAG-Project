@@ -1,1 +1,377 @@
-README.md
+# 🧠 Production RAG System
+
+> A fully production-grade **Retrieval-Augmented Generation (RAG)** pipeline built on AWS — featuring semantic search, AI reranking, automated ingestion, and a Claude-powered PR review bot.
+
+<div align="center">
+
+![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
+![Pinecone](https://img.shields.io/badge/Pinecone-000000?style=for-the-badge&logo=pinecone&logoColor=white)
+
+</div>
+
+---
+
+## 📌 What Is This?
+
+This project is a **production-ready RAG system** that lets you upload PDF documents and query them using natural language. It uses Claude (Anthropic) to generate answers grounded in your documents, with AWS Bedrock for embeddings and reranking.
+
+Think of it as your own private, intelligent document assistant — deployed on AWS, fully automated, and built to scale.
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 📄 **PDF Ingestion** | Upload PDFs via API or S3 — automatically chunked and embedded |
+| 🔍 **Semantic Search** | Pinecone vector search retrieves the most relevant chunks |
+| 🎯 **AI Reranking** | AWS Bedrock Cohere Rerank v3.5 re-orders results for precision |
+| 🤖 **Claude Answers** | Claude synthesizes retrieved chunks into grounded, cited answers |
+| ⚡ **Async Ingestion** | Lambda function handles ingestion asynchronously via S3 triggers |
+| 🐳 **Containerized** | Fully Dockerized, deployed on ECS Fargate — no servers to manage |
+| 🏗️ **IaC** | All infrastructure defined and managed via Terraform |
+| 🔄 **CI/CD** | GitHub Actions auto-deploys ECS and Lambda on every push |
+| 🧪 **Evaluation** | Built-in eval framework measures rerank scores, hit rate, and latency |
+| 👀 **PR Review Bot** | Claude automatically reviews every pull request and posts feedback |
+
+---
+
+## 🏛️ Architecture
+
+```
+                        ┌─────────────────────────────────────────────┐
+                        │                   AWS Cloud                  │
+                        │                                              │
+   User / Client        │   ┌──────────┐      ┌───────────────────┐   │
+        │               │   │          │      │   Lambda Function  │   │
+        │  POST /ingest  │   │  ECS     │      │  (Async Ingestor) │   │
+        │───────────────►│   │  Fargate │      │                   │   │
+        │               │   │          │  S3  │  • PDF Extraction  │   │
+        │  POST /query   │   │  FastAPI │─────►│  • Chunking        │   │
+        │───────────────►│   │  Backend │      │  • Titan Embed    │   │
+        │               │   │          │      │  • Pinecone Upsert │   │
+        │◄───────────────│   └──────────┘      └───────────────────┘   │
+        │   AI Answer    │        │                                     │
+                         │        │  Secrets Manager                    │
+                         │        │  CloudWatch Logs                    │
+                         │        ▼                                     │
+                         │   ┌──────────┐   ┌──────────┐              │
+                         │   │ Bedrock  │   │ Pinecone │              │
+                         │   │ (Titan   │   │ (Vector  │              │
+                         │   │ Embed +  │   │  Store)  │              │
+                         │   │ Cohere   │   │          │              │
+                         │   │ Rerank)  │   └──────────┘              │
+                         │   └──────────┘                              │
+                         └─────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 Query Pipeline
+
+```
+User Question
+     │
+     ▼
+Embed Query ──► Bedrock Titan (1024 dims)
+     │
+     ▼
+Vector Search ──► Pinecone (top 20 candidates)
+     │
+     ▼
+Rerank ──► Bedrock Cohere Rerank v3.5 (top k results)
+     │
+     ▼
+Generate ──► Claude (grounded answer with citations)
+     │
+     ▼
+Structured JSON Response
+```
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+- **Python 3.11** — core language
+- **FastAPI** — REST API framework
+- **LangChain** — document chunking (500 tokens, 50 overlap)
+- **pdfplumber** — PDF text extraction
+
+### AWS Services
+- **ECS Fargate** — containerized API deployment
+- **Lambda** — serverless async PDF ingestion
+- **S3** — raw PDF storage
+- **Bedrock** — Titan embeddings + Cohere reranking
+- **Secrets Manager** — secure config management
+- **CloudWatch** — logging and monitoring
+- **ECR** — container registry
+
+### Infrastructure & DevOps
+- **Docker** — containerization
+- **Terraform** — infrastructure as code
+- **GitHub Actions** — CI/CD pipelines
+- **Pinecone** — serverless vector database
+
+### AI Models
+- **Claude (Anthropic)** — answer generation
+- **Amazon Titan Embed Text v2** — 1024-dim embeddings
+- **Cohere Rerank v3.5** — semantic reranking
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- AWS CLI configured (`aws configure`)
+- Docker Desktop
+- Terraform
+- Pinecone account
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/vedantpatelx/RAG-Project.git
+cd RAG-Project
+```
+
+### 2. Set up environment variables
+
+```bash
+cp .env.example .env
+```
+
+Fill in `.env`:
+
+```env
+ANTHROPIC_API_KEY=your_anthropic_key
+PINECONE_API_KEY=your_pinecone_key
+PINECONE_INDEX_NAME=rag-index
+AWS_DEFAULT_REGION=us-east-1
+```
+
+### 3. Install dependencies
+
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 4. Run locally
+
+```bash
+cd app
+uvicorn main:app --reload --port 8000
+```
+
+API docs available at: `http://localhost:8000/docs`
+
+---
+
+## 📡 API Reference
+
+### `GET /health`
+Check that the API is running.
+
+```json
+{
+  "status": "ok",
+  "message": "RAG API is running."
+}
+```
+
+---
+
+### `POST /ingest`
+Upload a PDF and ingest it into the vector store.
+
+```bash
+curl -X POST "http://localhost:8000/ingest" \
+  -F "file=@your_document.pdf"
+```
+
+```json
+{
+  "filename": "your_document.pdf",
+  "status": "success",
+  "message": "your_document.pdf has been ingested into the vector store."
+}
+```
+
+---
+
+### `POST /query`
+Ask a question and get a grounded answer.
+
+```bash
+curl -X POST "http://localhost:8000/query" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is multi-head attention?", "top_k": 3}'
+```
+
+```json
+{
+  "question": "What is multi-head attention?",
+  "answer": "Multi-head attention allows the model to jointly attend to information from different representation subspaces...",
+  "sources": [
+    {
+      "text": "...",
+      "source": "s3://rag-project-docs/documents/paper.pdf",
+      "page": 4,
+      "rerank_score": 0.89
+    }
+  ]
+}
+```
+
+---
+
+## 🧪 Evaluation
+
+Run the evaluation framework to measure retrieval quality:
+
+```bash
+python eval/evaluate.py
+```
+
+**Sample Output:**
+```
+============================================================
+RAG EVALUATION REPORT
+============================================================
+[1] What is the attention mechanism in transformers?
+     Avg Rerank Score : 0.5725
+     Top Rerank Score : 0.6095
+     Keyword Hit Rate : 25%
+     Latency          : 4.44s
+
+[2] What is multi-head attention?
+     Avg Rerank Score : 0.8105
+     Top Rerank Score : 0.8932
+     Keyword Hit Rate : 100%
+     Latency          : 7.15s
+============================================================
+SUMMARY
+Avg rerank score    : 0.5178
+Avg keyword hit rate: 56%
+Avg latency         : 4.74s
+============================================================
+```
+
+---
+
+## 🔄 CI/CD Pipelines
+
+### Deploy ECS
+Triggers on changes to `app/`, `Dockerfile`, or `requirements.txt`:
+1. Builds Docker image
+2. Pushes to ECR
+3. Force-redeploys ECS service
+
+### Deploy Lambda
+Triggers on changes to `lambda/`:
+1. Builds Lambda container image
+2. Pushes to ECR
+3. Updates Lambda function
+
+### Claude PR Review Bot
+Triggers on every pull request:
+1. Reads the PR diff
+2. Sends to Claude for analysis
+3. Posts a structured review comment automatically
+
+---
+
+## 📁 Project Structure
+
+```
+RAG-Project/
+├── app/                        # FastAPI application
+│   ├── main.py                 # API routes
+│   ├── ingestor.py             # PDF ingestion pipeline
+│   ├── retriever.py            # Vector search + reranking
+│   ├── embedder.py             # Bedrock Titan embeddings
+│   └── models.py               # Pydantic models
+├── lambda/                     # Async ingestion Lambda
+│   ├── ingestion_handler.py    # Lambda handler
+│   ├── Dockerfile              # Lambda container
+│   └── requirements.txt        # Lambda dependencies
+├── eval/                       # Evaluation framework
+│   ├── evaluate.py             # Eval script
+│   └── results.json            # Latest eval results
+├── terraform/                  # Infrastructure as code
+│   ├── main.tf
+│   ├── ecs.tf
+│   ├── lambda.tf
+│   ├── s3.tf
+│   └── ...
+├── .github/
+│   ├── workflows/
+│   │   ├── deploy-ecs.yml      # ECS CI/CD
+│   │   ├── deploy-lambda.yml   # Lambda CI/CD
+│   │   └── pr-review.yml       # PR review bot
+│   └── scripts/
+│       └── pr_review.py        # Claude PR reviewer
+├── Dockerfile                  # ECS container
+├── requirements.txt            # Python dependencies
+└── README.md
+```
+
+---
+
+## ☁️ Infrastructure
+
+All AWS resources are managed via Terraform:
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+**Resources provisioned:**
+- ECS Cluster + Fargate Service
+- Lambda Function (3008MB, 300s timeout)
+- S3 Bucket
+- ECR Repositories (ECS + Lambda)
+- IAM Roles & Policies
+- Secrets Manager secret
+- CloudWatch Log Groups
+
+---
+
+## 💡 Key Design Decisions
+
+**Why Bedrock Titan for embeddings?**
+Lambda has a 10-second init timeout and read-only filesystem — `sentence-transformers` couldn't load models in time. Bedrock is an API call with no cold start issues.
+
+**Why Cohere Rerank?**
+Vector similarity alone isn't always enough. Reranking with a cross-encoder model significantly improves precision by scoring query-chunk relevance directly.
+
+**Why Lambda for ingestion?**
+Decoupling ingestion from the API means large PDF uploads don't block query requests. S3 events trigger Lambda asynchronously.
+
+**Why Pinecone serverless?**
+No infrastructure to manage, scales to zero, and pricing is based on usage — ideal for a project with variable ingestion load.
+
+---
+
+## 📄 License
+
+MIT License — feel free to use, fork, and build on this project.
+
+---
+
+<div align="center">
+
+Built with ❤️ by [Vedant Patel](https://github.com/vedantpatelx)
+
+</div>
