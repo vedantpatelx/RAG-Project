@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 
 class QueryRequest(BaseModel):
@@ -10,7 +11,9 @@ class ChunkResult(BaseModel):
     text: str
     source: str
     page: int
-    relevance_score: float
+    score: Optional[float] = None
+    rerank_score: Optional[float] = None
+    filename: Optional[str] = None
 
 
 class QueryResponse(BaseModel):
