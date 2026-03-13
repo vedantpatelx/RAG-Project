@@ -28,7 +28,7 @@ jobs:
 
       - name: Build and push ECS image
         run: |
-          docker build -t rag-project .
+          docker build --no-cache -t rag-project .
           docker tag rag-project:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/rag-project:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/rag-project:latest
 
